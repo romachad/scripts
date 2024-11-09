@@ -1,0 +1,98 @@
+#!/bin/bash
+# Date 29 Aug 2024
+
+#Time to change (in seconds)
+t1=1200
+t2=1080
+t3=1140
+t4=1020
+
+#Monitors:
+Vert="DP-3"
+UW="HDMI-0"
+HD="DVI-I-0"
+UW2="DP-4"
+
+#Path to Wallpapers
+Up=~/Wallpapers/Up/
+Wide=~/Wallpapers/for_ultra/
+Normal=~/Wallpapers/Normal/
+
+#Set the time counter
+t_wp1=$(date +%s)
+t_wp2=$t_wp1
+t_wp3=$t_wp1
+t_wp4=$t_wp1
+
+# Need to fix find to show symlink
+#mapfile -t wp1 < <(find "$Up" -printf "%f\n")
+#mapfile -t wp2 < <(find "$Wide" -printf "%f\n")
+#mapfile -t wp3 < <(find "$Normal" -printf "%f\n")
+#mapfile -t wp4 < <(find "$Wide" -printf "%f\n")
+
+# Once find is fixed above, remove these:
+mapfile -t wp_list1 < <(ls $Up)
+mapfile -t wp_list2 < <(ls $Wide)
+mapfile -t wp_list3 < <(ls $Normal)
+mapfile -t wp_list4 < <(ls $Wide)
+
+wp1=${wp_list1[$((RANDOM % ${#wp_list1[@]}))]}
+wp2=${wp_list2[$((RANDOM % ${#wp_list2[@]}))]}
+wp3=${wp_list3[$((RANDOM % ${#wp_list3[@]}))]}
+wp4=${wp_list4[$((RANDOM % ${#wp_list4[@]}))]}
+
+#Apply the WPs
+xwallpaper --output $Vert --maximize $Up$wp1 --output $UW --maximize $Wide$wp2 --output $HD --maximize $Normal$wp3 --output $UW2 --maximize $Wide$wp4
+
+declare -A wallpaper_lists
+wallpaper_lists[$Up]=wp_list1
+wallpaper_lists[$Wide]=wp_list2
+wallpaper_lists[$Normal]=wp_list3
+
+update_wallpaper() {
+	local monitor=$1
+	local path=$2
+	local -n current_wp=$3
+	local -n time_wp=$4
+	local time_interval=$5
+	local -n wp_list=${wallpaper_lists[$path]}
+
+	if [ $(date +%s) -ge $(( time_wp + time_interval )) ]; then
+		local new_wp
+		repeat=true
+		while $repeat; do
+			new_wp=${wp_list[$((RANDOM % ${#wp_list[@]}))]}
+			[[ "$new_wp" != "$current_wp" ]] && repeat=false
+		done
+
+		current_wp=$new_wp
+		xwallpaper --output $monitor --maximize $path$current_wp
+		time_wp=$(date +%s)
+	fi
+}
+
+sleep_check() {
+	local time_to_wait=$1
+	local time_compare
+
+	for time_compare in $@; do
+		if [[ $time_compare -lt $time_to_wait ]]; then
+			time_to_wait=$time_compare
+		fi
+	done
+
+	echo $time_to_wait
+}
+
+while true; do
+	update_wallpaper $Vert $Up wp1 t_wp1 $t1
+	update_wallpaper $UW $Wide wp2 t_wp2 $t2
+	update_wallpaper $HD $Normal wp3 t_wp3 $t3
+	update_wallpaper $UW2 $Wide wp4 t_wp4 $t4
+
+	# Calculate the next sleep time:
+	sleep_time=$(sleep_check $(( $t_wp1 + $t1 - $(date +%s) )) $(( $t_wp2 + $t2 - $(date +%s) )) $(( $t_wp3 + $t3 - $(date +%s) )) $(( $t_wp4 + $t4 - $(date +%s) )))
+
+	#echo "Sleep time is: $sleep_time"
+	sleep $sleep_time
+done
