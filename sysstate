@@ -1,0 +1,45 @@
+#!/bin/bash
+
+# Script for system states (reboot, poweroff, and exit dwm) to be used with dmenu
+
+# Define options for dmenu
+options="Shutdown\nReboot\nExit dwm"
+
+# Prompt user for action
+selection=$(echo -e "$options" | dmenu -i -p "What do you want to do:")
+
+# Execute selected command
+case "$selection" in
+    "Shutdown")
+        # Confirm Shutdown
+        confirm=$(echo -e "No\nYes" | dmenu -i -p "Are you sure you want to Shutdown?")
+        if [[ "$confirm" == "Yes" ]]; then
+            logger "User $(whoami) initiated system shutdown"
+            sudo poweroff
+        else
+            echo "Shutdown canceled." >&2
+            exit 1
+        fi
+        ;;
+    "Reboot")
+        # Confirm Reboot
+        confirm=$(echo -e "No\nYes" | dmenu -i -p "Are you sure you want to Reboot?")
+        if [[ "$confirm" == "Yes" ]]; then
+            logger "User $(whoami) initiated system reboot"
+            sudo reboot
+        else
+            echo "Reboot canceled." >&2
+            exit 1
+        fi
+        ;;
+    "Exit dwm")
+        # Exit dwm without confirmation
+        logger "User $(whoami) exited dwm"
+        pkill dwm
+        ;;
+    *)
+        # Handle invalid or canceled selections
+        echo "No valid option selected. Exiting." >&2
+        exit 1
+        ;;
+esac
