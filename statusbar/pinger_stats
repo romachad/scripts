@@ -1,4 +1,4 @@
-#/bin/sh
+#!/bin/bash
 
 #local of the ping log file:
 log=/tmp/pinger.log
